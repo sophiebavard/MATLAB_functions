@@ -7,7 +7,7 @@ function [Nbar,Nsub] = pirateplot(DataCell,Colors,Yinf,Ysup,Font,Title,LabelX,La
 
 % transforms the Data matrix into cell format if needed
 if iscell(DataCell)==0
-    DataCell = num2cell(DataCell', 1)';
+    DataCell = num2cell(DataCell,2);
 end
 
 % number of factors/groups/conditions
@@ -29,7 +29,7 @@ for n = 1:Nbar
     % number of subjects
     Nsub = length(DataMatrix(~isnan(DataMatrix)));
     
-    curve = nanmean(DataMatrix,2);
+    curve = nanmean(DataMatrix);
     sem   = nanstd(DataMatrix')'/sqrt(Nsub);
     conf  = tinv(1 - 0.5*(1-ConfInter),Nsub);
     
@@ -75,7 +75,7 @@ for n = 1:Nbar
     
     % all data is identical
     if min(DataMatrix) == max(DataMatrix)
-        density = 1;
+        density = 1; value = 1;
     end
     width = Wbar/2/max(density);    
     
