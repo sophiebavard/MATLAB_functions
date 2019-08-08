@@ -21,6 +21,8 @@ ConfInter = 0.95;
 % color of the box + error bar
 trace = [0.5 0.5 0.5];
 
+yline(0);
+
 for n = 1:Nbar
     
     clear DataMatrix
@@ -41,18 +43,6 @@ for n = 1:Nbar
     %     'LineWidth',1,...
     %     'FaceAlpha',0.15);
     % hold on
-    
-    % MEAN HORIZONTAL BAR
-    xMean = [n - Wbar/2; n + Wbar/2];
-    yMean = [curve; curve];
-    hold on, plot(xMean,yMean,'-','LineWidth',2,'Color',Colors(n,:));
-    
-    % ERROR BARS
-    errorbar(n,curve,sem,...
-        'Color',Colors(n,:),...%trace-0.1,...
-        'LineStyle','none',...
-        'LineWidth',1);
-    hold on
     
     % CONFIDENCE INTERVAL
     rectangle('Position',[n- Wbar/2, curve - sem*conf, 2*Wbar/2, sem*conf*2],...
@@ -93,12 +83,28 @@ for n = 1:Nbar
     else % all data is identical
         jitterstrength = density*width;
     end
-    jitter = 2*(rand(size(DataMatrix))-0.5);
+    % dots are scattered randomly
+    %     jitter = 2*(rand(size(DataMatrix))-0.5);
+    % dots are scattered in same order
+    jitter = zscore(1:length(DataMatrix))'/max(zscore(1:length(DataMatrix))');
     scatter(n + jitter.*jitterstrength, DataMatrix, 20,...
         'marker','o',...
         'LineWidth',1,...
         'MarkerEdgeColor',Colors(n,:),...
-        'MarkerEdgeAlpha',.5);
+        'MarkerEdgeAlpha',.5-0.4*(Nsub>200));
+    hold on    
+        
+    % MEAN HORIZONTAL BAR
+    xMean = [n - Wbar/2; n + Wbar/2];
+    yMean = [curve; curve];
+    hold on, plot(xMean,yMean,'-','LineWidth',2,'Color',Colors(n,:));
+    
+    % ERROR BARS
+    errorbar(n,curve,sem,...
+        'Color',Colors(n,:),...
+        'LineStyle','none',...
+        'LineWidth',1);
+    hold on
 end
 
 % axes and stuff
