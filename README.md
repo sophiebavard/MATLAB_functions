@@ -1,8 +1,8 @@
 # MATLAB_functions
 
-From a data matrix (nsub x ntrials), creates a editable violin plot with:
+From a data matrix (nsub x ntrials), creates a violin plot with:
 - mean
-- error bars
+- s.e.m.
 - confidence interval
 - kernel density
 
