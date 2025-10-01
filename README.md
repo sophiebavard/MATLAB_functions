@@ -1,6 +1,6 @@
 # MATLAB_functions
 
-From a data matrix (nsub x ntrials), creates a violin plot with:
+From a data matrix (ncond x nsub), creates a violin plot with:
 - mean
 - s.e.m.
 - confidence interval
