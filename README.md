@@ -8,10 +8,10 @@ From a data matrix (nsub x ntrials), creates a violin plot with:
 
 
 ## violinplotSB_double
-![image](https://github.com/user-attachments/assets/40b5010e-77d0-497e-910b-c53c5e86c8a9)
+![image](https://github.com/user-attachments/assets/8c64e83d-955a-4bf0-9b83-2910b8140ebb)
 
 ## violinplotSB
-![image](https://github.com/user-attachments/assets/cdefda3a-15f8-4655-8265-e65654c3f3fa)
+![image](https://github.com/user-attachments/assets/75258095-ab34-48af-8bdd-a269e2c0f333)
 
 ## skylineplot
 ![image](https://github.com/user-attachments/assets/d23f9523-4edd-4eea-b466-dd09bbfc9b31)
