@@ -1,7 +1,12 @@
-function [Nbar,Nsub] = violinplotSB(DataCell,Colors,Yinf,Ysup)
+function [Nbar,Nsub] = violinplotSB(DataCell,Colors,Yinf,Ysup,varargin)
 
 % Sophie Bavard - January 2024
 % Creates a violin plot with mean, error bars, confidence interval, kernel density.
+
+% Parse optional inputs
+p = inputParser;
+addOptional(p, 'DotSize', 37.5, @isnumeric);  % default is Wbar*50 where Wbar=0.75
+parse(p, varargin{:});
 
 % transforms the Data matrix into cell format if needed
 if iscell(DataCell)==0
@@ -12,14 +17,15 @@ end
 Nbar = size(DataCell,1);
 % bar size
 Wbar = 0.75;
-% dot size
-Wdot = Wbar*50;
+% dot size - from input parameter
+Wdot = p.Results.DotSize;
 
 % confidence interval
 ConfInter = 0.95;
 
 % Get current figure handle
 fig = gcf;
+ax = gca;
 
 for n = 1:Nbar
 
@@ -111,7 +117,7 @@ for n = 1:Nbar
     end
     xMean = [n ; n + xM];
     yMean = [curve; curve];
-    plot(xMean,yMean,'-','LineWidth',1,'Color','k');
+    plot(xMean,yMean,'-','LineWidth',1.5,'Color','k');
     hold on
 
 end
@@ -122,76 +128,114 @@ set(gca,'XTick',[])
 ylim([Yinf Ysup]);
 xlim([0 Nbar+1]);
 
-% DYNAMIC DOT SIZE
+% DYNAMIC DOT SIZE - Store reference and setup callback
 
-% Set up dynamic resizing callback
-fig.SizeChangedFcn = @(src,evt) updateAllMarkerSizes(fig);
+% Get all scatter objects and store their original sizes
+scatterObjs = findobj(ax, 'Type', 'scatter');
+for i = 1:length(scatterObjs)
+    userData = get(scatterObjs(i), 'UserData');
+    userData.originalSize = get(scatterObjs(i), 'SizeData');
+    set(scatterObjs(i), 'UserData', userData);
+end
 
-% Store initial axes size for reference scaling
-ax = gca;
+% Store initial axes size in pixels for reference
 axPos = getpixelposition(ax);
-referenceSize = sqrt(axPos(3) * axPos(4));
+axUserData = get(ax, 'UserData');
+axUserData.referenceSize = sqrt(axPos(3) * axPos(4));
+axUserData.hasViolinPlots = true;
+set(ax, 'UserData', axUserData);
 
-% Store reference size in axes UserData for scaling calculations
-ax.UserData.referenceSize = referenceSize;
-
-end
-
-
-function updateAllMarkerSizes(fig)
-% Find all axes in the figure
-allAxes = findobj(fig, 'Type', 'axes');
-
-% Update marker sizes for each axes
-for i = 1:length(allAxes)
-    updateMarkerSizes(allAxes(i));
-end
-end
-
-function updateMarkerSizes(ax)
-% Get current axes position in pixels
-try
-    axPos = getpixelposition(ax);
-    figPos = getpixelposition(get(ax, 'Parent'));
-
-    % Get normalized reference size (initial relative size when plot was created)
-    if isfield(ax.UserData, 'normalizedReferenceSize')
-        normalizedReferenceSize = ax.UserData.normalizedReferenceSize;
-    else
-        % If no reference stored, don't scale
-        return;
-    end
-
-    % Calculate current normalized size (axes size relative to current figure size)
-    axesArea = axPos(3) * axPos(4);
-    figureArea = figPos(3) * figPos(4);
-    currentNormalizedSize = sqrt(axesArea / figureArea);
-
-    % Calculate scaling factor relative to normalized sizes
-    scaleFactor = currentNormalizedSize / normalizedReferenceSize;
-
-    % Find all scatter objects in the axes
-    scatterObjs = findobj(ax, 'Type', 'scatter');
-
-    % Update all scatter objects
-    for i = 1:length(scatterObjs)
-        if isvalid(scatterObjs(i))
-            % Get original size from UserData, or store it if first time
-            if isempty(scatterObjs(i).UserData)
-                % Store the original size (Wbar*25) on first scaling call
-                scatterObjs(i).UserData = scatterObjs(i).SizeData;
-            end
-            originalSize = scatterObjs(i).UserData;
-
-            % Apply scaling while maintaining original size as baseline
-            scatterObjs(i).SizeData = originalSize * scaleFactor;
+% Get or initialize the list of violin axes in the figure
+figUserData = get(fig, 'UserData');
+if ~isfield(figUserData, 'violinAxes') || isempty(figUserData.violinAxes)
+    figUserData.violinAxes = ax;
+else
+    % Check if this axes is already in the list
+    alreadyExists = false;
+    for i = 1:length(figUserData.violinAxes)
+        if isequal(figUserData.violinAxes(i), ax)
+            alreadyExists = true;
+            break;
         end
     end
-catch
-    % Handle any errors silently
+    % Add this axes to the list if not already present
+    if ~alreadyExists
+        figUserData.violinAxes(end+1) = ax;
+    end
+end
+set(fig, 'UserData', figUserData);
+
+% Set up dynamic resizing callback (only once per figure)
+currentCallback = get(fig, 'SizeChangedFcn');
+if isempty(currentCallback)
+    set(fig, 'SizeChangedFcn', @(src,evt) updateAllViolinAxes(src));
+end
+
+end
+
+
+function updateAllViolinAxes(fig)
+% Update all axes in the figure that have violin plots
+try
+    figUserData = get(fig, 'UserData');
+    if ~isfield(figUserData, 'violinAxes')
+        return;
+    end
+    
+    allAxes = figUserData.violinAxes;
+    
+    % Create list of valid axes
+    validAxes = [];
+    for i = 1:length(allAxes)
+        if ishghandle(allAxes(i), 'axes')
+            validAxes(end+1) = allAxes(i);
+        end
+    end
+    
+    % Update the list
+    figUserData.violinAxes = validAxes;
+    set(fig, 'UserData', figUserData);
+    
+    % Update each valid axes
+    for i = 1:length(validAxes)
+        updateMarkerSizes(validAxes(i));
+    end
+catch ME
+    warning('Error in updateAllViolinAxes: %s', ME.message);
 end
 end
 
 
+function updateMarkerSizes(ax)
+% Get current and reference axes sizes
+% Check if axes is still valid
+if ~ishghandle(ax, 'axes')
+    return;
+end
 
+axUserData = get(ax, 'UserData');
+if ~isfield(axUserData, 'referenceSize')
+    return;
+end
 
+axPos = getpixelposition(ax);
+currentSize = sqrt(axPos(3) * axPos(4));
+referenceSize = axUserData.referenceSize;
+
+% Calculate scaling factor
+scaleFactor = currentSize / referenceSize;
+
+% Find all scatter objects in the axes
+scatterObjs = findobj(ax, 'Type', 'scatter');
+
+% Update all scatter objects
+for i = 1:length(scatterObjs)
+    if ishghandle(scatterObjs(i))
+        scatterUserData = get(scatterObjs(i), 'UserData');
+        if isfield(scatterUserData, 'originalSize')
+            originalSize = scatterUserData.originalSize;
+            set(scatterObjs(i), 'SizeData', originalSize * scaleFactor);
+        end
+    end
+end
+end
