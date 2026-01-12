@@ -6,6 +6,7 @@ From a data matrix (ncond x nsub), creates a violin plot with:
 - confidence interval
 - kernel density
 
+Now you can put the dot size as 'DotSize' input or leave it by default.
 
 ## violinplotSB_double
 ![image](https://github.com/user-attachments/assets/8c64e83d-955a-4bf0-9b83-2910b8140ebb)
